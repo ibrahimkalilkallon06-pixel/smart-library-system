@@ -1,92 +1,102 @@
-"""
-demo.py
-Demonstration script for the Mini Library Management System
-Author: [Daniel Amara Brima]
-Module: PROG211  Object-Oriented Programming 1
-"""
 
-from operations import (
-    GENRES, books, members,
-    add_book, add_member,
-    search_books, update_book, update_member,
-    delete_book, delete_member,
-    borrow_book, return_book
-)
+library_books = {}   # Stores book info by ISBN
+registered_members = []  # Stores library users and their borrowed books
+BOOK_GENRES = ("Fiction", "Non-Fiction", "Sci-Fi", "Education")
 
-def print_state():
-    """Display current library state."""
-    print("\n===== CURRENT LIBRARY STATE =====")
-    print("Books:")
-    for isbn, data in books.items():
-        print(f"  {isbn}: {data}")
-    print("\nMembers:")
-    for m in members:
-        print(f"  {m}")
-    print("=================================\n")
+# ---------------- Core Functions ---------------- #
+
+def register_book(isbn, title, author, genre, copies):
+    """Add a new book record to the library."""
+    if isbn in library_books:
+        return f"Book with ISBN {isbn} already exists."
+    if genre not in BOOK_GENRES:
+        return "Invalid genre type."
+
+    library_books[isbn] = {
+        "title": title,
+        "author": author,
+        "genre": genre,
+        "total": copies,
+        "available": copies
+    }
+    return f"Book '{title}' successfully registered."
 
 
-def main():
-    print("===== MINI LIBRARY MANAGEMENT SYSTEM DEMO =====\n")
+def find_book(keyword, search_by="title"):
+    """Search for books based on title or author name."""
+    result = []
+    for isbn, info in library_books.items():
+        if search_by == "title" and keyword.lower() in info["title"].lower():
+            result.append((isbn, info))
+        elif search_by == "author" and keyword.lower() in info["author"].lower():
+            result.append((isbn, info))
+    return result
 
-    # 1. Initialize genres
-    print(f"Available Genres: {GENRES}\n")
 
-    # 2. Add sample books
-    print(">>> Adding books...")
-    add_book("B001", "Python Basics", "Daniel ", "Non-Fiction", 5)
-    add_book("B002", "Space Odyssey", "Balu", "Sci-Fi", 3)
-    add_book("B003", "Mystery of the Nile", "Haja", "Mystery", 4)
-    add_book("B004", "The Life of Elon Musk", "Mohamed", "Biography", 2)
-    add_book("B005", "Love in Africa", "Amara", "Fiction", 6)
-    print_state()
+def register_member(member_id, name, email):
+    """Register a new member into the system."""
+    for member in registered_members:
+        if member["id"] == member_id:
+            return "Member ID already exists."
+    registered_members.append({"id": member_id, "name": name, "email": email, "borrowed": []})
+    return f"Member '{name}' added successfully."
 
-    # 3. Add sample members
-    print(">>> Adding members...")
-    add_member("M001", "kallon", "alice@example.com")
-    add_member("M002", "Grace", "bob@example.com")
-    add_member("M003", "Samuel", "charlie@example.com")
-    print_state()
 
-    # 4. Search books by title
-    print(">>> Searching books by title containing 'Python':")
-    results = search_books("Python")
-    print(results, "\n")
+def update_member(member_id, **kwargs):
+    """Update member details (like email or name)."""
+    for member in registered_members:
+        if member["id"] == member_id:
+            member.update(kwargs)
+            return f"Member '{member_id}' updated."
+    return "Member not found."
 
-    # 5. Update a book and a member
-    print(">>> Updating 'B003' and 'M002'...")
-    update_book("B003", title="Mystery of the Nile - Revised", total_copies=5)
-    update_member("M002", name="Bob J. Johnson")
-    print_state()
 
-    # 6. Borrow books
-    print(">>> Borrowing books...")
-    borrow_book("B001", "M001")
-    borrow_book("B002", "M001")
-    borrow_book("B003", "M002")
-    borrow_book("B004", "M003")
-    print_state()
+def borrow_book(member_id, isbn):
+    """Allow a member to borrow a book if available."""
+    if isbn not in library_books:
+        return "Book not found."
 
-    # 7. Return a book
-    print(">>> Returning book 'B001' for M001...")
-    return_book("B001", "M001")
-    print_state()
+    if library_books[isbn]["available"] <= 0:
+        return "No copies available for borrowing."
 
-    # 8. Attempt to delete a borrowed book
-    print(">>> Trying to delete 'B003' (borrowed by M002)...")
-    result = delete_book("B003")
-    print("Delete successful?" , result)
-    print_state()
+    for member in registered_members:
+        if member["id"] == member_id:
+            member["borrowed"].append(isbn)
+            library_books[isbn]["available"] -= 1
+            return f"{member['name']} borrowed '{library_books[isbn]['title']}'."
+    return "Member not found."
 
-    # 9. Return and delete again
-    print(">>> Returning 'B003' and deleting...")
-    return_book("B003", "M002")
-    delete_book("B003")
-    print_state()
 
-    # 10. Delete a member with no borrowed books
-    print(">>> Deleting member 'M003'...")
-    delete_member("M003")
-    print_state()
-    print("===== DEMO COMPLETE =====")
-if __name__ == "__main__":
-    main()
+def return_book(member_id, isbn):
+    """Return a borrowed book."""
+    for member in registered_members:
+        if member["id"] == member_id:
+            if isbn in member["borrowed"]:
+                member["borrowed"].remove(isbn)
+                library_books[isbn]["available"] += 1
+                return f"{member['name']} returned '{library_books[isbn]['title']}'."
+            return "Book not borrowed by this member."
+    return "Member not found."
+
+
+def remove_book(isbn):
+    """Delete a book from the system."""
+    if isbn not in library_books:
+        return "Book not found."
+
+    if library_books[isbn]["available"] != library_books[isbn]["total"]:
+        return "Cannot delete book while copies are borrowed."
+
+    del library_books[isbn]
+    return f"Book with ISBN {isbn} removed."
+
+
+def remove_member(member_id):
+    """Remove a member from the system if no books are borrowed."""
+    for member in registered_members:
+        if member["id"] == member_id:
+            if member["borrowed"]:
+                return "Cannot delete. Member still has borrowed books."
+            registered_members.remove(member)
+            return f"Member {member_id} deleted."
+    return "Member not found."
