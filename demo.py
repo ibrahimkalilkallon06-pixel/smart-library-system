@@ -4,7 +4,7 @@ from operations import *
 # Add books
 print(register_book("B001", "The Alchemist", "Paulo Coelho", "Fiction", 4))
 print(register_book("B002", "Deep Learning", "Ian Goodfellow", "Education", 3))
-print(register_book("B003", "1984", "George Orwell", "Fiction", 2))
+print(register_book("B003", "Rich dad poor dad", "Robert Kiyosaki", "Fiction", 2))
 print(register_book("B004", "Cosmos", "Carl Sagan", "Non-Fiction", 3))
 print(register_book("B005", "Dune", "Frank Herbert", "Sci-Fi", 5))
 
@@ -41,3 +41,4 @@ print(library_books)
 
 print("\n👥 Registered Members:")
 print(registered_members)
+
